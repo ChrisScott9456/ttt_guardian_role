@@ -62,14 +62,14 @@ if SERVER then
 				-- Do damage to the Guardian up until the health bonus is gone
 				-- If bonus reaches 0 or less, whatever healthBonus that the player had is the only amount of damage we want to do to the Guardian
 				-- Example: 50 healthBonus - 60 dmg = -10 dmgDiff, but we ignore all damage to the Guardian after the healthBonus reaches 0
-				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(healthBonus * 0.75)
+				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(healthBonus * (GetConVar('ttt_guardian_dmg_percentage'):GetFloat() / 100))
 
 				-- Remove the Guardian's Protection
 				ent:SetNWEntity('ttt2_guardian_protector', NULL)
 				ent:SetNWFloat('ttt2_guardian_health_bonus', 0.0)
 			else
 				-- Deal the damage to the Guardian instead of the player
-				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(amount * 0.75)
+				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(amount * (GetConVar('ttt_guardian_dmg_percentage'):GetFloat() / 100))
 			end
 		end
 	end)
@@ -90,9 +90,9 @@ if SERVER then
 		-- No damage if using Guardian Deagle and add protection to the hit player
 		if weap:GetClass() == 'weapon_ttt_guardian_deagle' then
 			ply:SetNWEntity('ttt2_guardian_protector', attacker)
-			ply:SetNWFloat('ttt2_guardian_health_bonus', 100.0)
+			ply:SetNWFloat('ttt2_guardian_health_bonus', GetConVar('ttt_guardian_health_bonus'):GetInt())
 
-			ply:SetHealth(ply:Health() + 100)
+			ply:SetHealth(ply:Health() + GetConVar('ttt_guardian_health_bonus'):GetInt())
 
 			attacker:PrintMessage(HUD_PRINTTALK, '[Guardian] - You are now protecting ' .. ply:Nick())
 
