@@ -43,57 +43,66 @@ if SERVER then
 		ply:StripWeapon("weapon_ttt_guardian_deagle")
 	end
 
-	
-	
-	-- -- Set the killer's entity on the victim for the Avenger to target
-	-- hook.Add('TTT2PostPlayerDeath', 'TTT2AvengerSetCorpseKiller', function(victim, _, attacker)
-	-- 	victim:SetNWEntity('ttt2_avenger_killer', attacker)
-	-- end)
+	-- Negate damage when protected to the Guardian
+	hook.Add('PlayerTakeDamage', 'TTT2GuardianSacrificeHealth', function(ent, inflictor, attacker, amount, dmginfo)
+		if ent:IsPlayer()
+		and ent:IsValid()
+		and ent:Alive()
+		and ent:GetNWEntity('ttt2_guardian_protector') ~= NULL	-- If not NULL (fallback value if not set with SetNWEntity)
+		and ent:GetNWFloat('ttt2_guardian_health_bonus') > 0	-- If the player still has their health bonus
+		then
+			local healthBonus = ent:GetNWFloat('ttt2_guardian_health_bonus')
+			local dmgDiff = healthBonus - amount
 
-	-- -- Give the Avenger their target
-	-- hook.Add('TTTCanSearchCorpse', 'TTT2AvengerCorpseTarget', function(idPlayer, rag, isCovert, isLongRange)
-	-- 	local victim = player.GetBySteamID64(rag.sid64)
-	-- 	local killer = victim:GetNWEntity('ttt2_avenger_killer')
+			-- Set the remaining health bonus
+			ent:SetNWFloat('ttt2_guardian_health_bonus', dmgDiff)
 
-	-- 	-- If the identifying player is an Avenger, give them a target
-	-- 	if idPlayer:GetSubRole() == ROLE_AVENGER
-	-- 	and not idPlayer:GetNWBool('ttt2_avenger_converted') then -- If the Avenger hasn't been converted yet
-	-- 		if victim ~= killer 				-- Cannot be a suicide
-	-- 		and IsValid(killer)					-- Killer must be valid
-	-- 		and killer:Alive() 					-- Target must be alive
-	-- 		and idPlayer ~= killer 				-- Target can't be the Avenger
-	-- 		and victim:GetTeam() ~= TEAM_NONE 	-- Target should not be of TEAM_NONE, otherwise the Avenger won't convert to anything
-	-- 		then
-	-- 			idPlayer:PrintMessage(HUD_PRINTTALK, '[Avenger] - Target acquired: ' .. killer:GetName())
+			-- If there is no remaining bonus health left, remove the Guardian's protection
+			if dmgDiff <= 0 then
+				-- Do the remaining damage after the health bonus is gone
+				dmginfo:SetDamage(math.abs(dmgDiff))
 
-	-- 			-- Set the Avenger's team to convert to and target
-	-- 			idPlayer:SetNWEntity('ttt2_avenger_convert_team', victim:GetTeam())
-	-- 			idPlayer:SetNWEntity('ttt2_avenger_target', killer)
-	-- 		else
-	-- 			idPlayer:PrintMessage(HUD_PRINTTALK, '[Avenger] - Cannot avenge this victim')
-	-- 		end
-			
-	-- 		return true
-	-- 	end
-	-- end)
+				-- Do damage to the Guardian up until the health bonus is gone
+				-- If bonus reaches 0 or less, whatever healthBonus that the player had is the only amount of damage we want to do to the Guardian
+				-- Example: 50 healthBonus - 60 dmg = -10 dmgDiff, but we ignore all damage to the Guardian after the healthBonus reaches 0
+				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(healthBonus * 0.75)
 
-	-- -- If the Avenger's target dies, remove the target and convert if the Avenger was the killer
-	-- hook.Add('TTT2PostPlayerDeath', 'TTT2AvengerConvertTeam', function(victim, _, attacker)
-	-- 	local avenger = GetAvengerByTarget(victim)
+				-- Remove the Guardian's Protection
+				ent:SetNWEntity('ttt2_guardian_protector', NULL)
+				ent:SetNWFloat('ttt2_guardian_health_bonus', 0.0)
+			else
+				-- Do no damage if there is still some health bonus left
+				dmginfo:SetDamage(0)
 
-	-- 	-- If the victim was the target of an Avenger
-	-- 	if avenger != nil then
-	-- 		-- Remove the Avenger's target if they die
-	-- 		avenger:SetNWEntity('ttt2_avenger_target', nil)
+				-- Deal the damage to the Guardian instead of the player
+				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(amount * 0.75)
+			end
+		end
+	end)
 
-	-- 		-- If the player that killed the victim was the Avenger, convert team to person being avenged
-	-- 		if attacker == avenger then
-	-- 			avenger:SetNWBool('ttt2_avenger_converted', true)
-	-- 			avenger:UpdateTeam(avenger:GetNWEntity('ttt2_avenger_convert_team'))
-	-- 			avenger:RemoveEquipmentItem("item_ttt_radar") -- Remove death radar
-	-- 		end
+	-- Handle Guardian Deagle hitting target
+	hook.Add('ScalePlayerDamage', 'TTT2GuardianDeagleHit', function(ply, hitgroup, dmginfo)
+		local attacker = dmginfo:GetAttacker()
 
-	-- 	else return
-	-- 	end
-	-- end)
+		-- Validations
+		if GetRoundState() ~= ROUND_ACTIVE or not attacker or not IsValid(attacker)
+			or not attacker:IsPlayer() or not IsValid(attacker:GetActiveWeapon()) then return end
+
+		-- Only execute if hitting player
+		if not ply or not ply:IsPlayer() then return end
+
+		local weap = attacker:GetActiveWeapon()
+
+		-- No damage if using Guardian Deagle and add protection to the hit player
+		if weap:GetClass() == 'weapon_ttt_guardian_deagle' then
+			ply:SetNWEntity('ttt2_guardian_protector', attacker)
+			ply:SetNWFloat('ttt2_guardian_health_bonus', 100.0)
+
+			attacker:PrintMessage(HUD_PRINTTALK, '[Guardian] - You are now protecting ' .. ply:Nick())
+
+			dmginfo:SetDamage(0)
+			return true
+		else return
+		end
+	end)
 end
