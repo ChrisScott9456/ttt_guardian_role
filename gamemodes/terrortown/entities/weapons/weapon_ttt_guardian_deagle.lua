@@ -11,13 +11,7 @@ SWEP.AutoSwitchFrom = false
 
 if SERVER then
 	AddCSLuaFile()
-
-	resource.AddFile('materials/vgui/ttt/icon_holydeagle.vmt')
 else
-	hook.Add('Initialize', 'TTTInitGuardianDeagleLang', function()
-		LANG.AddToLanguage('English', 'ttt2_weapon_holydeagle_desc', 'Shoot a player to make him holy, but be careful to shoot only innocent people.')
-	end)
-
 	SWEP.PrintName = 'Guardian Deagle'
 	SWEP.Author = 'DegeneReaper'
 
@@ -27,10 +21,10 @@ else
 	SWEP.ViewModelFlip = false
 
 	SWEP.Category = 'Deagle'
-	SWEP.Icon = 'vgui/ttt/icon_holydeagle.vtf'
+	SWEP.Icon = 'vgui/ttt/icon_deagle.vtf'
 	SWEP.EquipMenuData = {
 		type = 'item_weapon',
-		desc = 'ttt2_weapon_holydeagle_desc'
+		desc = 'Shoot a player to grant them protection at the cost of your own health.'
 	}
 end
 
@@ -38,6 +32,7 @@ SWEP.AllowDrop = false
 SWEP.notBuyable = true
 
 -- dmg
+SWEP.Primary.Damage = 0
 SWEP.Primary.Delay = 1
 SWEP.Primary.Recoil = 6
 SWEP.Primary.Automatic = false

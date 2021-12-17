@@ -4,7 +4,7 @@ if SERVER then
 end
 
 function ROLE:PreInitialize()
-	self.color = Color(151, 252, 237, 255)
+	self.color = Color(150, 255, 255, 255)
 
 	self.abbr = "guard"
 	self.survivebonus = 1                   	-- points for surviving longer
@@ -12,7 +12,8 @@ function ROLE:PreInitialize()
 	self.preventKillCredits = true          	-- does not get awarded credits for kills
 	self.preventWin = false                  	-- can win
 	self.score.killsMultiplier = 2          	-- gets points for killing enemies of their team
-	self.score.teamKillsMultiplier = -8     	-- loses points for killing teammates
+	self.score.teamKillsMultiplier = -8     	-- loses points for killing 
+	self.unknownTeam = true
 
 	self.defaultTeam = TEAM_INNOCENT 			-- starts on Innocent Team
 	self.defaultEquipment = SPECIAL_EQUIPMENT
