@@ -89,7 +89,9 @@ if SERVER then
 		local weap = attacker:GetActiveWeapon()
 
 		-- No damage if using Guardian Deagle and add protection to the hit player
-		if weap:GetClass() == 'weapon_ttt_guardian_deagle' then
+		if weap:GetClass() == 'weapon_ttt_guardian_deagle'
+		and ply:GetBaseRole() ~= ROLE_DETECTIVE	-- Prevent protection from affecting the Detective
+		then
 			local healthBonus = GetConVar('ttt_guardian_health_bonus'):GetInt()
 
 			ply:SetNWEntity('ttt2_guardian_protector', attacker)
@@ -106,10 +108,3 @@ if SERVER then
 		end
 	end)
 end
-
-
---
--- Need to set max health to 200 and revert when protection lost (fixes healing)
---
--- Prevent protection on Detectives
---
