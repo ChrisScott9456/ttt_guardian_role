@@ -67,6 +67,7 @@ if SERVER then
 				-- Remove the Guardian's Protection
 				ent:SetNWEntity('ttt2_guardian_protector', NULL)
 				ent:SetNWFloat('ttt2_guardian_health_bonus', 0.0)
+				ent:SetMaxHealth(ply:GetMaxHealth() - GetConVar('ttt_guardian_health_bonus'):GetInt())
 			else
 				-- Deal the damage to the Guardian instead of the player
 				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(amount * (GetConVar('ttt_guardian_dmg_percentage'):GetFloat() / 100))
@@ -89,10 +90,13 @@ if SERVER then
 
 		-- No damage if using Guardian Deagle and add protection to the hit player
 		if weap:GetClass() == 'weapon_ttt_guardian_deagle' then
-			ply:SetNWEntity('ttt2_guardian_protector', attacker)
-			ply:SetNWFloat('ttt2_guardian_health_bonus', GetConVar('ttt_guardian_health_bonus'):GetInt())
+			local healthBonus = GetConVar('ttt_guardian_health_bonus'):GetInt()
 
-			ply:SetHealth(ply:Health() + GetConVar('ttt_guardian_health_bonus'):GetInt())
+			ply:SetNWEntity('ttt2_guardian_protector', attacker)
+			ply:SetNWFloat('ttt2_guardian_health_bonus', healthBonus)
+
+			ply:SetHealth(ply:Health() + healthBonus)
+			ply:SetMaxHealth(ply:GetMaxHealth() + healthBonus)
 
 			attacker:PrintMessage(HUD_PRINTTALK, '[Guardian] - You are now protecting ' .. ply:Nick())
 
@@ -102,3 +106,10 @@ if SERVER then
 		end
 	end)
 end
+
+
+--
+-- Need to set max health to 200 and revert when protection lost (fixes healing)
+--
+-- Prevent protection on Detectives
+--
