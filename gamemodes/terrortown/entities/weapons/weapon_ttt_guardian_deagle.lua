@@ -76,44 +76,79 @@ function BuffTarget(att, path, dmginfo)
 			ent:PrintMessage(HUD_PRINTCENTER, 'You have been granted protection by ' .. dmginfo:GetAttacker():Nick() .. '!')
 	   end
 	end
- end
+end
 
-function SWEP:ShootGuardianBuff()
-	local cone = self.Primary.Cone
-	local bullet = {}
-	bullet.Num       = 1
-	bullet.Src       = self.Owner:GetShootPos()
-	bullet.Dir       = self.Owner:GetAimVector()
-	bullet.Spread    = Vector( cone, cone, 0 )
-	bullet.Tracer    = 1
-	bullet.Force     = 2
-	bullet.Damage    = self.Primary.Damage
-	bullet.TracerName = self.Tracer
-	bullet.Callback = BuffTarget
+local function RechargeShot(swep)
+	if not swep or not IsValid(swep) then return end
+	swep:SetClip1(1)
+end
+
+function SWEP:OnDrop()
+	self:Remove()
+end
+
+-- function SWEP:ShootGuardianBuff()
+-- 	local cone = self.Primary.Cone
+-- 	local bullet = {}
+-- 	bullet.Num       = 1
+-- 	bullet.Src       = self.Owner:GetShootPos()
+-- 	bullet.Dir       = self.Owner:GetAimVector()
+-- 	bullet.Spread    = Vector( cone, cone, 0 )
+-- 	bullet.Tracer    = 1
+-- 	bullet.Force     = 2
+-- 	bullet.Damage    = self.Primary.Damage
+-- 	bullet.TracerName = self.Tracer
+-- 	bullet.Callback = BuffTarget
  
-	self.Owner:FireBullets( bullet )
- end
+-- 	self.Owner:FireBullets( bullet )
+--  end
 
 function SWEP:PrimaryAttack()
-	self:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
+	-- Set up to refill ammo if you miss a target
+	if (self:Clip1() > 0) then
+		timer.Create('TTT2GuardianDeagleRecharge', 1, 1, function()
+			if not self:GetNWBool('ttt2_guardian_deagle_recharge') then
+				RechargeShot(self)
+			end
+		end)
+	end
 
-   if not self:CanPrimaryAttack() then return end
+	local BaseClass = baseclass.Get(self.Base)
+	BaseClass.PrimaryAttack(self)
+end
 
-   self:EmitSound( self.Primary.Sound )
+if SERVER then
+	-- Handle Guardian Deagle hitting target
+	hook.Add('ScalePlayerDamage', 'TTT2GuardianDeagleHit', function(ply, hitgroup, dmginfo)
+		local attacker = dmginfo:GetAttacker()
 
-   self:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
+		-- Validations
+		if GetRoundState() ~= ROUND_ACTIVE or not attacker or not IsValid(attacker)
+			or not attacker:IsPlayer() or not IsValid(attacker:GetActiveWeapon()) then return end
 
-   self:ShootGuardianBuff()
+		-- Only execute if hitting player
+		if not ply or not ply:IsPlayer() then return end
 
-   self:TakePrimaryAmmo( 1 )
+		local weap = attacker:GetActiveWeapon()
 
-   if IsValid(self.Owner) then
-      self.Owner:SetAnimation( PLAYER_ATTACK1 )
+		-- No damage if using Guardian Deagle and add protection to the hit player
+		if weap:GetClass() == 'weapon_ttt_guardian_deagle'
+		and ply:GetBaseRole() ~= ROLE_DETECTIVE	-- Prevent protection from affecting the Detective
+		then
+			weap:SetNWBool('ttt2_guardian_deagle_recharge', true)
+			local healthBonus = GetConVar('ttt_guardian_health_bonus'):GetInt()
 
-      self.Owner:ViewPunch( Angle( math.Rand(-0.2,-0.1) * self.Primary.Recoil, math.Rand(-0.1,0.1) *self.Primary.Recoil, 0 ) )
-   end
+			ply:SetNWEntity('ttt2_guardian_protector', attacker)
+			ply:SetNWFloat('ttt2_guardian_health_bonus', healthBonus)
 
-   if ( (game.SinglePlayer() && SERVER) || CLIENT ) then
-      self:SetNWFloat( "LastShootTime", CurTime() )
-   end
+			ply:SetHealth(ply:Health() + healthBonus)
+			ply:SetMaxHealth(ply:GetMaxHealth() + healthBonus)
+
+			attacker:PrintMessage(HUD_PRINTTALK, '[Guardian] - You are now protecting ' .. ply:Nick())
+
+			dmginfo:SetDamage(0)
+			return true
+		else return
+		end
+	end)
 end

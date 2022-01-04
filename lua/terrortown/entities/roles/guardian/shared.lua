@@ -68,44 +68,11 @@ if SERVER then
 				-- Remove the Guardian's Protection
 				ent:SetNWEntity('ttt2_guardian_protector', NULL)
 				ent:SetNWFloat('ttt2_guardian_health_bonus', 0.0)
-				ent:SetMaxHealth(ply:GetMaxHealth() - GetConVar('ttt_guardian_health_bonus'):GetInt())
+				ent:SetMaxHealth(ent:GetMaxHealth() - GetConVar('ttt_guardian_health_bonus'):GetInt())
 			else
 				-- Deal the damage to the Guardian instead of the player
 				ent:GetNWEntity('ttt2_guardian_protector'):TakeDamage(amount * (GetConVar('ttt_guardian_dmg_percentage'):GetFloat() / 100))
 			end
-		end
-	end)
-
-	-- Handle Guardian Deagle hitting target
-	hook.Add('ScalePlayerDamage', 'TTT2GuardianDeagleHit', function(ply, hitgroup, dmginfo)
-		local attacker = dmginfo:GetAttacker()
-
-		-- Validations
-		if GetRoundState() ~= ROUND_ACTIVE or not attacker or not IsValid(attacker)
-			or not attacker:IsPlayer() or not IsValid(attacker:GetActiveWeapon()) then return end
-
-		-- Only execute if hitting player
-		if not ply or not ply:IsPlayer() then return end
-
-		local weap = attacker:GetActiveWeapon()
-
-		-- No damage if using Guardian Deagle and add protection to the hit player
-		if weap:GetClass() == 'weapon_ttt_guardian_deagle'
-		and ply:GetBaseRole() ~= ROLE_DETECTIVE	-- Prevent protection from affecting the Detective
-		then
-			local healthBonus = GetConVar('ttt_guardian_health_bonus'):GetInt()
-
-			ply:SetNWEntity('ttt2_guardian_protector', attacker)
-			ply:SetNWFloat('ttt2_guardian_health_bonus', healthBonus)
-
-			ply:SetHealth(ply:Health() + healthBonus)
-			ply:SetMaxHealth(ply:GetMaxHealth() + healthBonus)
-
-			attacker:PrintMessage(HUD_PRINTTALK, '[Guardian] - You are now protecting ' .. ply:Nick())
-
-			dmginfo:SetDamage(0)
-			return true
-		else return
 		end
 	end)
 end
