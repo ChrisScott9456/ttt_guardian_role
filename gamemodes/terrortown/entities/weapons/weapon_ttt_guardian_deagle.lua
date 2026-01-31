@@ -134,6 +134,7 @@ if SERVER then
 		-- No damage if using Guardian Deagle and add protection to the hit player
 		if weap:GetClass() == 'weapon_ttt_guardian_deagle'
 		and ply:GetBaseRole() ~= ROLE_DETECTIVE	-- Prevent protection from affecting the Detective
+		and ply:GetSubRole() ~= ROLE_DEFECTIVE -- Prevent protection from affecting Defectives
 		then
 			weap:SetNWBool('ttt2_guardian_deagle_recharge', true)
 			local healthBonus = GetConVar('ttt_guardian_health_bonus'):GetInt()
